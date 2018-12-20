@@ -87,7 +87,6 @@ class OpposableThumbs:
 
         # perform processing on the image
         for p in self.processes:
-            print(p)
             self.process(p)
 
         # save to disk (if applicable)
