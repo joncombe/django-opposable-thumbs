@@ -17,6 +17,7 @@ class OpposableThumbs:
         self.size = None
         self.image = None
         self.processes = []
+        self.cache = None
         self.use_cache = False
         self.cache_key = None
         self.cache_exists = False
@@ -52,7 +53,6 @@ class OpposableThumbs:
             # use local file
             self.source = 'file'
             self.target = self.param_dict['file']
-            return self.set_error('This feature is currently unavailable')
         elif 'uri' in self.param_dict:
             self.source = 'uri'
             self.target = self.param_dict['uri']
@@ -68,7 +68,7 @@ class OpposableThumbs:
 
         # open image
         if self.source == 'file':
-            pass
+            self.image = Image.open(self.target)
         elif self.source == 'uri':
             try:
                 r = requests.get(self.target)
@@ -255,6 +255,32 @@ class OpposableThumbs:
             except:
                 self.set_error('Invalid resize arguments')
 
+        # resizemax
+        if command[0] == 'resizemax':
+            try:
+                # get orig size
+                orig_width = float(self.image.size[0])
+                orig_height = float(self.image.size[1])
+                orig_ratio = orig_width / orig_height
+
+                # get target size
+                target_width = int(command[1])
+                target_height = int(command[2])
+                target_ratio = target_width / target_height
+
+                # resize accordingly
+                if orig_ratio > target_ratio:
+                    target_height = int(round(target_width / orig_ratio))
+                elif orig_ratio < target_ratio:
+                    target_width = int(round(target_height * orig_ratio))
+
+                self.image = self.image.resize(
+                    (target_width, target_height),
+                    resample=Image.ANTIALIAS
+                )
+            except:
+                self.set_error('Invalid resizemax arguments')
+
         # resizemin
         if command[0] == 'resizemin':
             try:
@@ -279,7 +305,7 @@ class OpposableThumbs:
                     resample=Image.ANTIALIAS
                 )
             except:
-                self.set_error('Invalid cropratio arguments')
+                self.set_error('Invalid resizemin arguments')
 
         # resizepc
         if command[0] == 'resizepc':
