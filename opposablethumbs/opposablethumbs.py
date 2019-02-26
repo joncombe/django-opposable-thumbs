@@ -98,17 +98,19 @@ class OpposableThumbs:
             self.image.save(self.get_cache_path(), self.format)
 
     def is_allowed_source(self):
-        if len(settings.OPPOSABLE_THUMBS['ALLOWED_SOURCES']) > 0:
-            allowed = False
+        if (
+            hasattr(settings, 'OPPOSABLE_THUMBS') and
+            'ALLOWED_SOURCES' in settings.OPPOSABLE_THUMBS and
+            isinstance(settings.OPPOSABLE_THUMBS['ALLOWED_SOURCES'], list)
+        ):
             for s in settings.OPPOSABLE_THUMBS['ALLOWED_SOURCES']:
+                print(self.target, s)
+                if s == '*':
+                    return True
                 if self.target.lower().startswith(s.lower()):
-                    allowed = True
-                    break
+                    return True
 
-            if not allowed:
-                return False
-
-        return True
+        return False
 
     def get_cache_dir(self):
         if hasattr(settings, 'OPPOSABLE_THUMBS') and 'CACHE_DIR' in settings.OPPOSABLE_THUMBS:
