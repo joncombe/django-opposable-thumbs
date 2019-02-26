@@ -1,6 +1,6 @@
 import hashlib
+import os
 import requests
-import os.path
 from PIL import Image
 from PIL import ImageEnhance
 from PIL import ImageFilter
@@ -35,6 +35,10 @@ class OpposableThumbs:
 
         # use cache if applicable
         if self.cache:
+            try:
+                os.makedirs(self.get_cache_dir())
+            except:
+                pass
             self.cache_key = (hashlib.md5(params.encode('utf-8'))).hexdigest()
             self.cache_exists = os.path.isfile(self.get_cache_path())
             if self.cache_exists:
@@ -106,9 +110,15 @@ class OpposableThumbs:
 
         return True
 
+    def get_cache_dir(self):
+        if hasattr(settings, 'OPPOSABLE_THUMBS') and 'CACHE_DIR' in settings.OPPOSABLE_THUMBS:
+            return settings.OPPOSABLE_THUMBS['CACHE_DIR']
+        else:
+            return os.path.join(settings.MEDIA_ROOT, 'opposable-thumbs')
+
     def get_cache_path(self):
         return '%s%s' % (
-            settings.OPPOSABLE_THUMBS['CACHE_DIR'],
+            self.get_cache_dir(),
             self.cache_key
         )
 
