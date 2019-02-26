@@ -119,7 +119,7 @@ class OpposableThumbs:
             return os.path.join(settings.MEDIA_ROOT, 'opposable-thumbs')
 
     def get_cache_path(self):
-        return '%s%s' % (
+        return '%s/%s' % (
             self.get_cache_dir(),
             self.cache_key
         )
