@@ -12,6 +12,9 @@ from django.http import HttpResponse
 
 
 class OpposableThumbs:
+    # TODO: fliphoriz/flipvert combined with crop break the output image
+    # we need to crop FIRST, then do the flipping
+
     def __init__(self, params):
         self.format = "JPEG"
         self.image = None
@@ -82,8 +85,9 @@ class OpposableThumbs:
 
     def get_cache_boolean_value(self, param_key, config_key):
         error = False
-        if key in self.param_dict:
-            value = self.param_dict[key] in ["true", "on", "1"]
+        value = False
+        if param_key in self.param_dict:
+            value = self.param_dict[param_key] in ["true", "on", "1"]
             if value and self.get_config(config_key) is None:
                 self.set_error("Input caching requested but no INPUT_CACHE_DIR defined")
                 error = True
