@@ -8,7 +8,7 @@ from PIL import ImageOps
 from io import BytesIO
 
 from django.conf import settings
-from django.http import HttpResponse
+from django.http import FileResponse, HttpResponse
 
 
 class OpposableThumbs:
@@ -30,52 +30,12 @@ class OpposableThumbs:
             self.param_dict[key] = value
 
         # get cache boolean values
-        self.cache_input, cache_error = self.get_cache_boolean_value(
+        self.cache_input = self.get_cache_boolean_value(
             "cache_input", "INPUT_CACHE_DIR"
         )
-        if cache_error:
-            return
-        self.cache_output, cache_error = self.get_cache_boolean_value(
+        self.cache_output = self.get_cache_boolean_value(
             "cache_output", "OUTPUT_CACHE_DIR"
         )
-        if cache_error:
-            return
-
-        # TODO: if cache_output, return the cached copy if it already exists
-        if self.cache_output:
-            #
-            #
-            # exists and opened successfully? return
-            pass
-
-        # define image source
-        if not self.set_image_source():
-            return None
-
-        # open image
-        if not self.open_source_image():
-            return None
-
-        # define processes to perform on image
-        if "p" in self.param_dict:
-            self.processes = [p.split(",") for p in self.param_dict["p"].split("|")]
-
-        # which filetype to return
-        self.format = self.image.format
-        if "format" in self.param_dict:
-            self.format = self.param_dict["format"].upper()
-
-        # perform processing on the image
-        for p in self.processes:
-            self.process(p)
-
-        # TODO: if cache_output, save this output to disk for
-        # faster retrieval next time
-        if self.cache_output:
-            # self.image.save(self.get_cache_path(), self.format)
-            #
-            #
-            pass
 
     def get_config(self, key):
         try:
@@ -84,15 +44,56 @@ class OpposableThumbs:
             return None
 
     def get_cache_boolean_value(self, param_key, config_key):
-        error = False
         value = False
         if param_key in self.param_dict:
             value = self.param_dict[param_key] in ["true", "on", "1"]
             if value and self.get_config(config_key) is None:
-                self.set_error("Input caching requested but no INPUT_CACHE_DIR defined")
-                error = True
+                self.set_error(f"{cache_output} requested but no {config_key} defined")
 
-        return value, error
+        return value
+
+    def get_extension_from_mimetype(self, mimetype):
+        return mimetype.split("/")[1]
+
+    def get_mimetype_from_extension(self, ext):
+        mimetypes = {
+            "bmp": "image/bmp",
+            "gif": "image/gif",
+            "jpeg": "image/jpeg",
+            "jpg": "image/jpeg",
+            "png": "image/png",
+            "tif": "image/tiff",
+            "tiff": "image/tiff",
+            "webp": "image/webp",
+        }
+        return mimetypes[ext] if ext in mimetypes else None
+
+    def get_output_cache_filename(self):
+        string = "&".join(
+            sorted([f"{key}={str(value)}" for key, value in self.param_dict.items()])
+        )
+        hashed = hashlib.md5(string.encode("utf-8")).hexdigest()
+        mimetype = self.get_output_mimetype()
+        return f"{hashed}.{self.get_extension_from_mimetype(mimetype)}"
+
+    def get_output_cache_filepath(self):
+        return (
+            f"{self.get_config('OUTPUT_CACHE_DIR')}/{self.get_output_cache_filename()}"
+        )
+
+    def get_output_mimetype(self):
+        # TODO: is the mimetype specified in the params?
+        # if so, use that...
+        #
+        #
+
+        # does the original image url have an extension defined?
+        extension = self.get_mimetype_from_extension(
+            self.param_dict["uri"].split(".")[-1]
+        )
+
+        # fallback to using jpg
+        return extension or "image/jpeg"
 
     def open_source_image(self):
         if self.image_source_type == "file":
@@ -163,32 +164,20 @@ class OpposableThumbs:
         self.set_error("Invalid image source")
         return False
 
-    def is_allowed_source(self):
-        if (
-            hasattr(settings, "OPPOSABLE_THUMBS")
-            and "ALLOWED_SOURCES" in settings.OPPOSABLE_THUMBS
-            and isinstance(settings.OPPOSABLE_THUMBS["ALLOWED_SOURCES"], list)
-        ):
-            for s in settings.OPPOSABLE_THUMBS["ALLOWED_SOURCES"]:
-                print(self.target, s)
-                if s == "*":
-                    return True
-                if self.target.lower().startswith(s.lower()):
-                    return True
-
-        return False
-
-    def get_cache_dir(self):
-        if (
-            hasattr(settings, "OPPOSABLE_THUMBS")
-            and "CACHE_DIR" in settings.OPPOSABLE_THUMBS
-        ):
-            return settings.OPPOSABLE_THUMBS["CACHE_DIR"]
-        else:
-            return os.path.join(settings.MEDIA_ROOT, "opposable-thumbs")
-
-    def get_cache_path(self):
-        return "%s/%s" % (self.get_cache_dir(), self.cache_key)
+    # def is_allowed_source(self):
+    #     if (
+    #         hasattr(settings, "OPPOSABLE_THUMBS")
+    #         and "ALLOWED_SOURCES" in settings.OPPOSABLE_THUMBS
+    #         and isinstance(settings.OPPOSABLE_THUMBS["ALLOWED_SOURCES"], list)
+    #     ):
+    #         for s in settings.OPPOSABLE_THUMBS["ALLOWED_SOURCES"]:
+    #             print(self.target, s)
+    #             if s == "*":
+    #                 return True
+    #             if self.target.lower().startswith(s.lower()):
+    #                 return True
+    #
+    #     return False
 
     def process(self, command):
         # autocontrast
@@ -420,19 +409,46 @@ class OpposableThumbs:
         self.error = error
         return None
 
-    def response(self):
-        # show error if one exists
-        if self.error is not None:
+    def get_thumbnail(self):
+        if self.error:
             return HttpResponse(self.error)
 
-        # init reponse object
+        # if cache_output, return the cached copy if it already exists
+        if self.cache_output:
+            output_cache_filepath = self.get_output_cache_filepath()
+            if os.path.isfile(output_cache_filepath):
+                return FileResponse(open(output_cache_filepath, "rb"))
+
+        # define image source
+        if not self.set_image_source():
+            return HttpResponse("No image source defined")
+
+        # open image
+        if not self.open_source_image():
+            return HttpResponse("Cannot open source image")
+
+        # define processes to perform on image
+        if "p" in self.param_dict:
+            self.processes = [p.split(",") for p in self.param_dict["p"].split("|")]
+
+        # which filetype to return
+        self.format = self.image.format
+        if "format" in self.param_dict:
+            self.format = self.param_dict["format"].upper()
+
+        # perform processing on the image
+        for p in self.processes:
+            self.process(p)
+
+        # bail if errors
+        if self.error:
+            return HttpResponse(self.error)
+
+        # if cache_output, save this output to disk for faster retrieval next time
+        if self.cache_output:
+            self.image.save(self.get_output_cache_filepath(), self.format)
+
+        # respond with the image
         r = HttpResponse(content_type="image/%s" % self.format.lower())
-
-        # fetch from appropriate source
-        # if self.cache_exists:
-        #     with open(self.get_cache_path(), 'rb') as fp:
-        #         r.write(fp.read())
-        # else:
         self.image.save(r, self.format)
-
         return r
