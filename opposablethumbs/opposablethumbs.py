@@ -6,6 +6,7 @@ from PIL import ImageEnhance
 from PIL import ImageFilter
 from PIL import ImageOps
 from io import BytesIO
+from urllib.parse import unquote
 
 from django.conf import settings
 from django.http import FileResponse, HttpResponse
@@ -25,9 +26,20 @@ class OpposableThumbs:
 
         # extract params into dict
         self.param_dict = {}
-        for p in str(params).lower().split("&"):
+        for p in unquote(str(params)).split("&"):
             key, value = p.split("=")
             self.param_dict[key] = value
+
+        # append the domain to the uri
+        if (
+            "domain" in self.param_dict
+            and "uri" in self.param_dict
+            and self.param_dict["domain"]
+            in settings.OPPOSABLE_THUMBS.get("DOMAINS", {})
+        ):
+            self.param_dict[
+                "uri"
+            ] = f"{settings.OPPOSABLE_THUMBS['DOMAINS'][self.param_dict['domain']]}{self.param_dict['uri']}"
 
         # get cache boolean values
         self.cache_input = self.get_cache_boolean_value(
