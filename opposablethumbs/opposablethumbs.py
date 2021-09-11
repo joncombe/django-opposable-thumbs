@@ -191,7 +191,52 @@ class OpposableThumbs:
     #
     #     return False
 
-    def process(self, command):
+    def process_crop(self, command):
+        # crop
+        if command[0] == "crop":
+            try:
+                self.image = self.image.crop(
+                    (int(command[1]), int(command[2]), int(command[3]), int(command[4]))
+                )
+            except:
+                self.set_error("Invalid crop arguments")
+
+        # cropratio
+        if command[0] == "cropratio":
+            try:
+                # get sizes
+                width = float(self.image.size[0])
+                height = float(self.image.size[1])
+                orig_ratio = width / height
+                target_ratio = float(command[1])
+
+                # crop
+                if orig_ratio > target_ratio:
+                    # same height, change width
+                    target_width = int(round(height * target_ratio))
+                    left = int(round((width / 2) - (target_width / 2)))
+                    self.image = self.image.crop(
+                        (
+                            left,
+                            0,
+                            left + target_width,
+                            int(height),
+                        )
+                    )
+                elif target_ratio > orig_ratio:
+                    # same width, change height
+                    target_height = int(round(width / target_ratio))
+                    top = int(round((height / 2) - (target_height / 2)))
+                    self.image = self.image.crop(
+                        (0, top, int(width), top + target_height)
+                    )
+                else:
+                    return self.image
+
+            except:
+                self.set_error("Invalid cropratio arguments")
+
+    def process_manipulation(self, command):
         # autocontrast
         if command[0] == "autocontrast":
             self.image = ImageOps.autocontrast(self.image)
@@ -239,50 +284,6 @@ class OpposableThumbs:
                 )
             except:
                 self.set_error("Invalid contrast argument")
-
-        # crop
-        if command[0] == "crop":
-            try:
-                self.image = self.image.crop(
-                    (int(command[1]), int(command[2]), int(command[3]), int(command[4]))
-                )
-            except:
-                self.set_error("Invalid crop arguments")
-
-        # cropratio
-        if command[0] == "cropratio":
-            try:
-                # get sizes
-                width = float(self.image.size[0])
-                height = float(self.image.size[1])
-                orig_ratio = width / height
-                target_ratio = float(command[1])
-
-                # crop
-                if orig_ratio > target_ratio:
-                    # same height, change width
-                    target_width = int(round(height * target_ratio))
-                    left = int(round((width / 2) - (target_width / 2)))
-                    self.image = self.image.crop(
-                        (
-                            left,
-                            0,
-                            left + target_width,
-                            int(height),
-                        )
-                    )
-                elif target_ratio > orig_ratio:
-                    # same width, change height
-                    target_height = int(round(width / target_ratio))
-                    top = int(round((height / 2) - (target_height / 2)))
-                    self.image = self.image.crop(
-                        (0, top, int(width), top + target_height)
-                    )
-                else:
-                    return self.image
-
-            except:
-                self.set_error("Invalid cropratio arguments")
 
         # emboss
         if command[0] == "emboss":
@@ -450,7 +451,9 @@ class OpposableThumbs:
 
         # perform processing on the image
         for p in self.processes:
-            self.process(p)
+            self.process_crop(p)
+        for p in self.processes:
+            self.process_manipulation(p)
 
         # bail if errors
         if self.error:
