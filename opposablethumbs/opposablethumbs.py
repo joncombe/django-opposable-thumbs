@@ -467,3 +467,25 @@ class OpposableThumbs:
         r = HttpResponse(content_type="image/%s" % self.format.lower())
         self.image.save(r, self.format)
         return r
+
+    def save_to_file(self, path):
+        self.set_image_source()
+        self.open_source_image()
+
+        # define processes to perform on image
+        if "p" in self.param_dict:
+            self.processes = [p.split(",") for p in self.param_dict["p"].split("|")]
+
+        # which filetype to return
+        self.format = self.image.format
+        if "format" in self.param_dict:
+            self.format = self.param_dict["format"].upper()
+
+        # perform processing on the image
+        for p in self.processes:
+            self.process_crop(p)
+        for p in self.processes:
+            self.process_manipulation(p)
+
+        #
+        self.image.save(path)
