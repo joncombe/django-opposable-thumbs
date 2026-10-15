@@ -1,7 +1,7 @@
 django-opposable-thumbs
 ====
 
-Tested on Django 2.1 and Python 3.5.
+Tested on Django 5.2, Python 3.12 and Pillow 12.3. Requires Pillow 9.1+.
 
 Example settings:
 

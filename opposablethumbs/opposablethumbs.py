@@ -329,7 +329,7 @@ class OpposableThumbs:
         if command[0] == "resize":
             try:
                 self.image = self.image.resize(
-                    (int(command[1]), int(command[2])), resample=Image.ANTIALIAS
+                    (int(command[1]), int(command[2])), resample=Image.Resampling.LANCZOS
                 )
             except:
                 self.set_error("Invalid resize arguments")
@@ -354,7 +354,7 @@ class OpposableThumbs:
                     target_width = int(round(target_height * orig_ratio))
 
                 self.image = self.image.resize(
-                    (target_width, target_height), resample=Image.ANTIALIAS
+                    (target_width, target_height), resample=Image.Resampling.LANCZOS
                 )
             except:
                 self.set_error("Invalid resizemax arguments")
@@ -379,7 +379,7 @@ class OpposableThumbs:
                     target_height = int(round(target_width / orig_ratio))
 
                 self.image = self.image.resize(
-                    (target_width, target_height), resample=Image.ANTIALIAS
+                    (target_width, target_height), resample=Image.Resampling.LANCZOS
                 )
             except:
                 self.set_error("Invalid resizemin arguments")
@@ -390,7 +390,7 @@ class OpposableThumbs:
                 x, y = self.image.size
                 self.image = self.image.resize(
                     (int(x * float(command[1])), int(y * float(command[2]))),
-                    resample=Image.ANTIALIAS,
+                    resample=Image.Resampling.LANCZOS,
                 )
             except:
                 self.set_error("Invalid resizepc arguments")
