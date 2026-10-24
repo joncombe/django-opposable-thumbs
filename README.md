@@ -1,17 +1,20 @@
-django-opposable-thumbs
-====
+# django-opposable-thumbs
 
-Tested on Django 5.2, Python 3.12 and Pillow 12.3. Requires Pillow 9.1+.
+**This project has been replaced by
+[opposable-thumbs](https://github.com/joncombe/opposable-thumbs), and is no
+longer maintained.**
 
-Example settings:
+opposable-thumbs is a rewrite that works with any Python project, and
+includes a Django integration:
 
 ```
-OPPOSABLE_THUMBS = {
-    'CACHE_DIR': os.path.join(BASE_DIR, 'path/to/folder/'),
-    'ALLOWED_SOURCES': [
-        'http://example.com/static/one/',
-        'http://example.com/static/two/',
-        'http://somwehereelse.com/',
-    ]
-}
+pip install opposable-thumbs[django]
 ```
+
+See [Using with Django](https://github.com/joncombe/opposable-thumbs/blob/main/docs/django.md)
+to get started. It is also on PyPI as
+[opposable-thumbs](https://pypi.org/project/opposable-thumbs/).
+
+This repository and the `django-opposable-thumbs` package on PyPI won't
+receive any further updates, including security fixes, so please move to
+opposable-thumbs.
